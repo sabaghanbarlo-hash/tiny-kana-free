@@ -1,0 +1,32 @@
+name: Import free kana videos
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the videos from the tagged source
+        run: |
+          git clone --depth 1 --branch kana-videos-v1 --filter=blob:none --sparse https://github.com/sabaghanbarlo-hash/tiny-japanese-youtube.git ../src
+          cd ../src
+          git sparse-checkout set --no-cone 'docs/videos/hira-*' 'docs/videos/kata-*'
+      - name: Copy only the free videos and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          HIRA="a i u e o ka ki ku ke ko sa shi su se so"
+          KATA="a i u e o ka ki ku ke ko sa shi su se so ta chi tsu te to na ni nu ne no ha hi fu he ho"
+          mkdir -p videos
+          for k in $HIRA; do for e in mp4 thumbnail.png; do cp "../src/docs/videos/hira-$k.$e" videos/; done; done
+          for k in $KATA; do for e in mp4 thumbnail.png; do cp "../src/docs/videos/kata-$k.$e" videos/; done; done
+          ls videos | wc -l
+          git add videos
+          git commit -m "Add the free kana videos"
+          for i in 1 2 3 4; do git pull --rebase origin main && git push origin HEAD:main && break; sleep 10; done
